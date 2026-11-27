@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Présentation interactive de la couche Communication des Smart Grids : plan de métro animé, maquette, jeu et comparateur.">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Le métro des données</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Concept : un plan de métro. Chaque technologie de communication est une ligne colorée, chaque équipement une station.
+   Le reste de la page reste sobre pour que les quatre lignes portent toute la couleur. */
+:root{
+  --bg:#EDF1F3; --surface:#FFFFFF; --surface-2:#E2E9ED; --ink:#0F1C26; --ink-2:#47586A; --rule:#C5D0D8;
+  --fibre:#1F63E0; --cpl:#12905A; --radio:#E07B00; --cell:#D93A3F;
+  --ok:#12905A; --warn:#B7791F; --bad:#C62F3A; --focus:#1F63E0;
+  --btn-bg:#0F1C26; --btn-fg:#FFFFFF;
+  --display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B141B; --surface:#12202A; --surface-2:#192B37; --ink:#E9F0F4; --ink-2:#9DB0BD; --rule:#2A3D4B;
+    --fibre:#5C9DFF; --cpl:#37C98A; --radio:#FFA02E; --cell:#FF6E72;
+    --ok:#37C98A; --warn:#E5B04A; --bad:#FF6E72; --focus:#8DBBFF;
+    --btn-bg:#E9F0F4; --btn-fg:#0B141B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B141B; --surface:#12202A; --surface-2:#192B37; --ink:#E9F0F4; --ink-2:#9DB0BD; --rule:#2A3D4B;
+  --fibre:#5C9DFF; --cpl:#37C98A; --radio:#FFA02E; --cell:#FF6E72;
+  --ok:#37C98A; --warn:#E5B04A; --bad:#FF6E72; --focus:#8DBBFF;
+  --btn-bg:#E9F0F4; --btn-fg:#0B141B; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);font-size:16px;line-height:1.55;background:var(--bg);color:var(--ink)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
+h1,h2,h3,h4{font-family:var(--display);font-weight:700;line-height:1.02;text-wrap:balance;margin:0}
+h2{font-size:clamp(36px,5.2vw,60px);text-transform:uppercase;letter-spacing:.01em}
+h3{font-size:28px;letter-spacing:.005em}
+p{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1200px;margin-inline:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+section{padding-block:72px;scroll-margin-top:64px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.lede{font-size:18px;color:var(--ink-2);max-width:62ch}
+.shead{display:grid;gap:14px;margin-bottom:28px}
+.btn{font:600 15px var(--body);padding:10px 20px;border-radius:999px;border:2px solid var(--ink);background:var(--btn-bg);color:var(--btn-fg);cursor:pointer;text-decoration:none;display:inline-block;line-height:1.3}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.sm{padding:6px 14px;font-size:14px}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--rule);border-radius:999px;padding:3px 11px 3px 9px;font:500 13px var(--body);background:var(--surface)}
+.chip i{width:10px;height:10px;border-radius:50%;flex:none}
+
+/* En-tête */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);border-bottom:1px solid var(--rule)}
+.bar{display:flex;align-items:center;gap:20px;height:56px}
+.brand{display:flex;align-items:center;gap:10px;font:700 22px var(--display);text-transform:uppercase;letter-spacing:.03em;text-decoration:none;white-space:nowrap}
+.brand .dots{display:flex;gap:3px}
+.brand .dots i{width:6px;height:20px;border-radius:3px}
+.top nav{display:flex;gap:18px;margin-left:auto;font-size:14px;font-weight:500}
+.top nav a{text-decoration:none;color:var(--ink-2)}
+.top nav a:hover{color:var(--ink)}
+.tools{display:flex;gap:8px}
+@media (max-width:860px){.top nav{display:none}.tools{margin-left:auto}}
+
+/* Accueil */
+.hero{padding-block:64px 40px}
+.hero h1{font-size:clamp(56px,11vw,140px);text-transform:uppercase;letter-spacing:.005em;margin-top:14px}
+.lines{display:flex;flex-direction:column;gap:6px;margin:22px 0 26px;max-width:520px}
+.lines i{display:block;height:8px;border-radius:4px;background:var(--c)}
+.lines i:nth-child(1){width:100%}.lines i:nth-child(2){width:78%}.lines i:nth-child(3){width:56%}.lines i:nth-child(4){width:34%}
+.hero .lead{font-size:20px;max-width:60ch;color:var(--ink-2)}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.zones{padding-block:0 24px}
+.zgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:2px solid var(--ink)}
+.zgrid>div{padding:18px 20px 18px 0;display:grid;gap:6px;align-content:start}
+.zgrid>div+div{padding-left:20px;border-left:1px solid var(--rule)}
+.zgrid b{font:700 30px var(--display);text-transform:uppercase}
+.zgrid .rg{font:500 13px var(--mono);color:var(--ink-2)}
+.zgrid p{font-size:15px;color:var(--ink-2)}
+@media (max-width:760px){.zgrid{grid-template-columns:minmax(0,1fr)}.zgrid>div+div{padding-left:0;border-left:0;border-top:1px solid var(--rule)}}
+
+/* Parcours */
+.legend{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:14px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.legend i{width:30px;height:8px;border-radius:4px;display:block}
+.story{padding-top:48px}
+.story-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:36px;align-items:start}
+.mapcol{position:sticky;top:calc(env(safe-area-inset-top,0px) + 72px)}
+.mapwrap{background:var(--surface);border:1px solid var(--rule);border-radius:16px;overflow:hidden}
+.mapscroll{overflow-x:auto}
+.mapscroll svg{display:block;width:100%;min-width:540px;height:auto}
+.mapcap{padding:10px 16px;border-top:1px solid var(--rule);font-size:14px;display:flex;gap:6px 12px;flex-wrap:wrap;align-items:baseline}
+.mapcap .t{font:500 13px var(--mono);color:var(--ink-2)}
+.band{fill:var(--surface-2);opacity:.6}
+.band.b1{opacity:0}
+.zt{font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;fill:var(--ink-2)}
+.zr{font:400 12px var(--mono);fill:var(--ink-2)}
+.seg{fill:none;stroke-width:10;stroke-linecap:round;stroke-linejoin:round;transition:opacity .45s}
+.seg.dim{opacity:.16}
+.seg.han,.seg.lora{stroke:var(--radio)}
+.seg.cpl{stroke:var(--cpl)}
+.seg.cell{stroke:var(--cell)}
+.seg.fibre{stroke:var(--fibre)}
+.flow{fill:none;stroke:var(--surface);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:.1 11;animation:flow 1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-11.1}}
+.st{transition:opacity .45s}
+.st.dim{opacity:.3}
+.st circle{fill:var(--surface);stroke:var(--ink);stroke-width:4}
+.st text{fill:var(--ink);font:500 14px var(--body);paint-order:stroke;stroke:var(--surface);stroke-width:5px;stroke-linejoin:round}
+.pk rect{fill:var(--ink)}
+.pk path{fill:none;stroke:var(--bg);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cutg{opacity:0;transition:opacity .3s}
+.cutg.on{opacity:1}
+.cutg line{stroke:var(--bad);stroke-width:5;stroke-linecap:round}
+.cutg rect{fill:var(--surface);stroke:var(--bad);stroke-width:2}
+.cutg text{fill:var(--bad);font:600 13px var(--body);text-anchor:middle}
+.steps{list-style:none;margin:0;padding:0}
+.step{min-height:78vh;display:flex;align-items:center;padding-block:24px;scroll-margin-top:90px;outline-offset:-4px}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:22px 22px 20px;display:grid;gap:14px;width:100%;opacity:.72;transition:opacity .3s,border-color .3s}
+.step.on .card{opacity:1;border-color:var(--ink)}
+.meta{display:flex;gap:10px;align-items:baseline;font:500 13px var(--mono);color:var(--ink-2);letter-spacing:.06em;text-transform:uppercase}
+.meta .time{color:var(--ink);font-size:15px}
+.card p{color:var(--ink-2)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.proto{font:400 13px var(--mono);color:var(--ink-2)}
+.proto b{color:var(--ink);font-weight:500}
+.figs{display:flex;gap:28px;flex-wrap:wrap}
+.figs div{display:grid;gap:0}
+.figs span{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.figs b{font:700 26px var(--display)}
+.ticket{border:2px dashed var(--rule);border-radius:10px;padding:12px 14px;font:400 12.5px var(--mono);display:grid;gap:5px;background:var(--bg)}
+.ticket .th{font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);font-size:11px}
+.ticket .tr{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px}
+.ticket .tr span{color:var(--ink-2)}
+.ticket .tr b{font-weight:500;overflow-wrap:anywhere}
+@media (max-width:900px){
+  .story-grid{grid-template-columns:minmax(0,1fr);gap:8px}
+  .mapcol{top:calc(env(safe-area-inset-top,0px) + 56px);z-index:5;background:var(--bg);padding-block:8px}
+  .step{min-height:64vh;scroll-margin-top:360px}
+}
+
+/* Maquette */
+.demo{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:16px;padding:18px;display:grid;gap:16px;min-width:0}
+.panel h4{font-size:22px;text-transform:uppercase;letter-spacing:.02em}
+.dscroll{overflow-x:auto}
+.dscroll svg{display:block;width:100%;min-width:520px;height:auto}
+.lk{fill:none;stroke-width:7;stroke-linecap:round;transition:opacity .3s}
+.lk.c-cpl{stroke:var(--cpl)}.lk.c-radio{stroke:var(--radio)}.lk.c-fibre{stroke:var(--fibre)}.lk.c-cell{stroke:var(--cell)}
+.lk.cut{opacity:.25;stroke-dasharray:3 11}
+.hit{stroke:transparent;stroke-width:24;fill:none;cursor:pointer;pointer-events:stroke}
+.hit:focus-visible{stroke:var(--focus);stroke-opacity:.35;outline:none}
+.xm{opacity:0;pointer-events:none}
+.xm.on{opacity:1}
+.xm line{stroke:var(--bad);stroke-width:4;stroke-linecap:round}
+.ms{font:500 12px var(--mono);fill:var(--ink-2);paint-order:stroke;stroke:var(--surface);stroke-width:4px;pointer-events:none}
+.nd circle{fill:var(--surface);stroke:var(--ink);stroke-width:4}
+.nd.src circle{fill:var(--ink)}
+.nd text{font:500 14px var(--body);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:5px;pointer-events:none}
+.hint{font-size:14px;color:var(--ink-2)}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);padding:0;margin-bottom:8px}
+.radios{display:flex;gap:8px;flex-wrap:wrap}
+.radios label{cursor:pointer}
+.radios input{position:absolute;opacity:0;pointer-events:none}
+.radios span{display:inline-block;padding:6px 14px;border:2px solid var(--rule);border-radius:999px;font-weight:500;font-size:14px;background:var(--bg)}
+.radios input:checked+span{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.radios input:focus-visible+span{outline:3px solid var(--focus);outline-offset:2px}
+.scen{display:flex;gap:8px;flex-wrap:wrap}
+.read{display:grid;gap:10px;border-top:1px solid var(--rule);padding-top:14px}
+.read .row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;align-items:baseline;font-size:15px}
+.read .row>span{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.big{font:700 40px var(--display);line-height:1}
+.status{display:inline-flex;align-items:center;gap:8px;font-weight:600}
+.status i{width:12px;height:12px;border-radius:50%;background:var(--c,var(--ok))}
+.need{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:14px;align-items:center}
+.need small{grid-column:1;color:var(--ink-2);font:400 12px var(--mono)}
+@media (max-width:900px){.demo{grid-template-columns:minmax(0,1fr)}}
+
+/* Jeu */
+.gamecard{background:var(--surface);border:1px solid var(--ink);border-radius:16px;padding:22px;display:grid;gap:20px;max-width:860px}
+.track5{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.track5 li{position:relative;display:grid;justify-items:center;gap:6px;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.track5 li+li::before{content:"";position:absolute;top:15px;right:50%;width:100%;height:4px;background:var(--rule)}
+.track5 li.done+li::before,.track5 li.cur::before{background:var(--ink)}
+.track5 .dot{position:relative;z-index:1;width:32px;height:32px;border-radius:50%;background:var(--surface);border:3px solid var(--rule);display:grid;place-items:center;font-weight:600;color:var(--bg)}
+.track5 li.done .dot{background:var(--ink);border-color:var(--ink)}
+.track5 li.cur .dot{border-color:var(--ink);background:var(--bg)}
+.track5 li.cur{color:var(--ink)}
+.hp{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;font-size:14px}
+.hp span{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.meter{height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.meter i{display:block;height:100%;border-radius:5px;background:var(--c);transition:width .4s}
+.q .z{display:inline-flex;gap:8px;align-items:center;font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.q .z i{width:22px;height:8px;border-radius:4px}
+.q p.s{font-size:20px;margin-top:8px;line-height:1.4;max-width:60ch}
+.opts{display:grid;gap:10px;margin-top:16px}
+.opt{text-align:left;border:2px solid var(--rule);background:var(--bg);color:var(--ink);border-radius:12px;padding:12px 16px;cursor:pointer;font-size:16px;font-weight:500;display:grid;gap:4px}
+.opt:hover:not([disabled]){border-color:var(--ink)}
+.opt small{font-weight:400;color:var(--ink-2);font-size:14px;display:none}
+.opts.done .opt small{display:block}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--surface))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.opt[disabled]{cursor:default}
+.gfoot{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.final h3{font-size:40px;text-transform:uppercase}
+.final ul{margin:12px 0 0;padding-left:20px;color:var(--ink-2)}
+details{border-top:1px solid var(--rule);padding-block:12px}
+details summary{cursor:pointer;font-weight:600}
+details ol,details ul{margin:10px 0 0;padding-left:22px;color:var(--ink-2)}
+details li{margin-block:4px}
+.room{max-width:860px;margin-top:20px}
+
+/* Comparateur */
+.chartblock{display:grid;gap:8px;margin-bottom:34px}
+.chartblock h4{font-size:24px;text-transform:uppercase;letter-spacing:.02em}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.row{display:grid;grid-template-columns:132px minmax(0,1fr);gap:12px;align-items:center;transition:opacity .25s}
+.row.off{opacity:.18}
+.row .nm{display:grid;gap:0;line-height:1.2}
+.row .nm b{font-weight:600;font-size:15px}
+.row .nm span{font:400 11.5px var(--mono);color:var(--ink-2)}
+.track{position:relative;height:24px;border-right:1px solid var(--rule);background:linear-gradient(to right,var(--rule) 1px,transparent 1px) 0 0/calc(100% / var(--n)) 100%}
+.bar2{position:absolute;top:4px;bottom:4px;border-radius:99px;background:var(--c);min-width:10px}
+.axis{display:grid;grid-template-columns:132px minmax(0,1fr);gap:12px}
+.axis div{position:relative;height:20px}
+.axis span{position:absolute;top:2px;font:400 11.5px var(--mono);color:var(--ink-2);transform:translateX(-50%);white-space:nowrap}
+.axis span.first{transform:none}.axis span.last{transform:translateX(-100%)}
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+tr.off{opacity:.25}
+td.tn{font-weight:600;white-space:nowrap}
+@media (max-width:640px){.row,.axis{grid-template-columns:96px minmax(0,1fr)}}
+
+/* Protocoles */
+.pgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.pc{border:1px solid var(--rule);border-radius:12px;padding:14px 16px;background:var(--surface);display:grid;gap:6px;align-content:start;border-top:4px solid var(--c)}
+.pc b{font:700 22px var(--display);text-transform:uppercase}
+.pc .z{font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.pc p{font-size:14.5px;color:var(--ink-2)}
+@media (max-width:980px){.pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.pgrid{grid-template-columns:minmax(0,1fr)}}
+
+/* Sécurité */
+.sec{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:36px;align-items:center}
+.sec svg{width:100%;max-width:360px;height:auto;display:block;margin-inline:auto}
+.ring{cursor:pointer}
+.ring circle{fill:var(--surface);stroke:var(--rule);stroke-width:1.5;transition:fill .25s,stroke .25s}
+.ring.on circle{fill:color-mix(in srgb,var(--fibre) 24%,var(--surface));stroke:var(--ink);stroke-width:3}
+.ring text{font:500 8.5px var(--mono);letter-spacing:.08em;fill:var(--ink);text-anchor:middle;pointer-events:none}
+.stabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.sdetail{display:grid;gap:10px;min-height:190px}
+.sdetail h3{text-transform:none}
+.sdetail p{color:var(--ink-2);max-width:56ch}
+.std{font:500 13px var(--mono);color:var(--ink)}
+@media (max-width:860px){.sec{grid-template-columns:minmax(0,1fr)}}
+
+/* Avenir et fin */
+.tgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.tc{border-top:6px solid var(--c);padding:14px 0 0;display:grid;gap:8px;align-content:start}
+.tc h4{font-size:26px;text-transform:uppercase}
+.tc p{font-size:15px;color:var(--ink-2)}
+@media (max-width:980px){.tgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.tgrid{grid-template-columns:minmax(0,1fr)}}
+.retain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;border-top:2px solid var(--ink);padding-top:22px}
+.retain div{display:grid;gap:6px;align-content:start}
+.retain b{font:700 26px var(--display);text-transform:uppercase}
+.retain p{color:var(--ink-2);font-size:15.5px}
+@media (max-width:760px){.retain{grid-template-columns:minmax(0,1fr)}}
+.note{font-size:13.5px;color:var(--ink-2);max-width:80ch;margin-top:28px}
+footer{padding-block:20px 56px}
+.pnav{position:fixed;left:0;right:0;bottom:0;z-index:35;padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font:500 14px var(--mono);background:var(--ink);color:var(--bg)}
+.pnav button{font:600 15px var(--body);padding:8px 18px;border-radius:999px;border:2px solid var(--bg);background:transparent;color:var(--bg);cursor:pointer}
+.pnav button:disabled{opacity:.35;cursor:default}
+.pnav .cnt{min-width:64px;text-align:center}
+.pnav :focus-visible{outline:3px solid var(--bg);outline-offset:2px}
+body.presenting{padding-bottom:76px}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="wrap bar">
+  <a class="brand" href="#accueil"><span class="dots" aria-hidden="true"><i style="background:var(--fibre)"></i><i style="background:var(--cpl)"></i><i style="background:var(--radio)"></i><i style="background:var(--cell)"></i></span>Métro des données</a>
+  <nav aria-label="Sections"><a href="#parcours">Parcours</a><a href="#maquette">Maquette</a><a href="#jeu">Jeu</a><a href="#comparateur">Comparateur</a><a href="#securite">Sécurité</a></nav>
+  <div class="tools"><button class="btn ghost sm" id="btnPresent" aria-pressed="false">Mode présentation</button><button class="btn ghost sm" id="btnTheme" aria-label="Changer de thème clair ou sombre">Thème</button></div>
+</div></header>
+
+<main>
+<section id="accueil" class="hero" data-slide><div class="wrap">
+  <p class="eyebrow">Projet Smart Grids · Couche Communication</p>
+  <h1>Le métro<br>des données</h1>
+  <div class="lines" aria-hidden="true"><i style="--c:var(--fibre)"></i><i style="--c:var(--cpl)"></i><i style="--c:var(--radio)"></i><i style="--c:var(--cell)"></i></div>
+  <p class="lead">Un réseau électrique intelligent, c'est un réseau électrique doublé d'un réseau de communication. Celui-ci transporte mesures, ordres et alarmes, dans les deux sens, entre des millions d'équipements. Montez à bord : nous suivons un paquet de données pendant la journée de Sami.</p>
+  <div class="cta"><a class="btn" href="#parcours">Suivre le paquet</a><a class="btn ghost" href="#jeu">Jouer en salle</a></div>
+</div></section>
+
+<section class="zones" data-slide aria-label="Les trois zones du réseau"><div class="wrap"><div class="zgrid">
+  <div><b>HAN / BAN</b><span class="rg">Home / Building Area Network · ≈ 100 m</span><p>La maison ou le bâtiment : appareils, onduleur solaire, borne de recharge, compteur communicant.</p></div>
+  <div><b>NAN / FAN</b><span class="rg">Neighborhood / Field Area Network · jusqu'à quelques km</span><p>Le quartier : compteurs, concentrateur, capteurs de ligne, poste de distribution.</p></div>
+  <div><b>WAN</b><span class="rg">Wide Area Network · 10 à 100+ km</span><p>La région : postes, centres de contrôle, datacenters, liens opérateurs.</p></div>
+</div></div></section>
+
+<section id="parcours" class="story"><div class="wrap">
+  <div class="shead" data-slide>
+    <p class="eyebrow">Le parcours</p>
+    <h2>Une journée de Sami</h2>
+    <p class="lede">Faites défiler. À chaque moment de la journée, un paquet de données voyage sur le plan. Les lignes allumées sont celles qu'il emprunte.</p>
+    <div class="legend" aria-label="Légende des lignes">
+      <span><i style="background:var(--radio)"></i>Radio basse consommation (Zigbee, Wi-Fi, LoRaWAN)</span>
+      <span><i style="background:var(--cpl)"></i>Courant porteur (CPL)</span>
+      <span><i style="background:var(--cell)"></i>Réseau mobile (NB-IoT, 4G, 5G)</span>
+      <span><i style="background:var(--fibre)"></i>Fibre optique</span>
+    </div>
+  </div>
+  <div class="story-grid">
+    <div class="mapcol"><div class="mapwrap"><div class="mapscroll" id="mapscroll"></div><div class="mapcap" id="mapcap"></div></div></div>
+    <ol class="steps" id="steps"></ol>
+  </div>
+</div></section>
+
+<section id="maquette" data-slide><div class="wrap">
+  <div class="shead">
+    <p class="eyebrow">Mini-démo</p>
+    <h2>La maquette qui se répare</h2>
+    <p class="lede">Choisissez d'où part le paquet, puis coupez un lien en cliquant dessus, ou lancez un scénario. Le réseau cherche le chemin le plus rapide vers le centre de contrôle.</p>
+  </div>
+  <div class="demo">
+    <div class="panel">
+      <div class="dscroll" id="dscroll"></div>
+      <p class="hint">Les délais affichés sont des ordres de grandeur pédagogiques. Un lien en pointillés est coupé. Au clavier, Tab puis Entrée sur un lien.</p>
+    </div>
+    <div class="panel">
+      <fieldset><legend>Source du paquet</legend>
+        <div class="radios" id="srcs"></div></fieldset>
+      <fieldset><legend>Scénarios</legend>
+        <div class="scen" id="scen"></div></fieldset>
+      <div class="read" aria-live="polite">
+        <div class="row"><span>Chemin</span><b id="rPath"></b></div>
+        <div class="row"><span>Délai</span><div class="big" id="rLat"></div></div>
+        <div class="row"><span>Statut</span><div id="rStat"></div></div>
+        <div class="row"><span>Besoins</span><div class="need" id="rNeed"></div></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section id="jeu" data-slide><div class="wrap">
+  <div class="shead">
+    <p class="eyebrow">Participation du public</p>
+    <h2>Devenez un paquet de données</h2>
+    <p class="lede">Cinq décisions, de la maison au centre de contrôle. Chaque mauvais choix abîme le paquet. En salle : projetez cette page, le public vote à main levée, l'animateur clique.</p>
+  </div>
+  <div class="gamecard" id="game"></div>
+  <div class="room"><details><summary>Variante sans écran : le jeu de rôle</summary>
+    <ol>
+      <li>Cinq volontaires jouent le chauffe-eau, le compteur, le concentrateur, la passerelle et le centre de contrôle.</li>
+      <li>Un papier « 3,2 kWh » passe de main en main. Chaque volontaire annonce sa technologie (Zigbee, CPL, fibre…).</li>
+      <li>L'animateur tire un obstacle : brouillage, fibre coupée, faux ordre d'un pirate. La salle propose la parade.</li>
+    </ol></details></div>
+</div></section>
+
+<section id="comparateur" data-slide><div class="wrap">
+  <div class="shead">
+    <p class="eyebrow">Le choix des lignes</p>
+    <h2>Quelle technologie, où et pourquoi</h2>
+    <p class="lede">Aucune technologie ne gagne partout. Portée, débit, coût et consommation décident de la zone où chacune règne. Les échelles sont logarithmiques : chaque graduation vaut dix fois la précédente.</p>
+  </div>
+  <div class="filters" id="filters" role="group" aria-label="Filtrer par zone"></div>
+  <div class="chartblock"><h4>Portée typique</h4><div id="chRange"></div></div>
+  <div class="chartblock"><h4>Débit typique</h4><div id="chRate"></div></div>
+  <div class="tablewrap"><table id="tbl"><thead><tr><th>Technologie</th><th>Zone</th><th>Latence</th><th>Coût</th><th>Usage typique</th></tr></thead><tbody></tbody></table></div>
+  <p class="note">Valeurs indicatives, qui varient selon la norme, la bande de fréquence et l'environnement. À recouper avec vos documents de cours.</p>
+</div></section>
+
+<section id="protocoles" data-slide><div class="wrap">
+  <div class="shead">
+    <p class="eyebrow">Les langages</p>
+    <h2>Les équipements parlent des protocoles</h2>
+    <p class="lede">La technologie transporte les bits, le protocole donne un sens aux messages. L'interopérabilité vient de standards partagés.</p>
+  </div>
+  <div class="pgrid" id="pgrid"></div>
+</div></section>
+
+<section id="securite" data-slide><div class="wrap">
+  <div class="shead">
+    <p class="eyebrow">Cybersécurité</p>
+    <h2>Cinq couches de défense</h2>
+    <p class="lede">Un compteur est dans la rue, un poste est dans un champ, un lien de secours passe par un opérateur. La sécurité se construit en couches concentriques. Cliquez sur un anneau.</p>
+  </div>
+  <div class="sec">
+    <svg id="rings" viewBox="0 0 240 240" role="img" aria-label="Cinq anneaux concentriques autour de la donnée"></svg>
+    <div><div class="stabs" id="stabs" role="tablist" aria-label="Couches de défense"></div><div class="sdetail" id="sdetail" aria-live="polite"></div></div>
+  </div>
+</div></section>
+
+<section id="avenir" data-slide><div class="wrap">
+  <div class="shead">
+    <p class="eyebrow">Prochaines stations</p>
+    <h2>Tendances</h2>
+  </div>
+  <div class="tgrid">
+    <div class="tc" style="--c:var(--cell)"><h4>5G et tranches réseau</h4><p>Une tranche virtuelle réservée au réseau électrique, avec latence et fiabilité garanties, sur l'infrastructure d'un opérateur.</p></div>
+    <div class="tc" style="--c:var(--cpl)"><h4>Calcul en périphérie</h4><p>Décider au poste ou au concentrateur plutôt que dans un datacenter lointain : moins de latence, moins de données à transporter.</p></div>
+    <div class="tc" style="--c:var(--radio)"><h4>Intelligence artificielle</h4><p>Prévoir la charge, repérer les anomalies de trafic, planifier la maintenance à partir des données remontées.</p></div>
+    <div class="tc" style="--c:var(--fibre)"><h4>Jumeaux numériques</h4><p>Un modèle virtuel du réseau, nourri en continu, pour tester une panne ou une cyberattaque sans aucun risque.</p></div>
+  </div>
+</div></section>
+</main>
+
+<footer data-slide><div class="wrap">
+  <div class="retain">
+    <div><b>Une zone, une technologie</b><p>Radio basse consommation dans la maison, CPL dans le quartier, fibre et réseau mobile pour la grande distance.</p></div>
+    <div><b>Deux chemins valent mieux qu'un</b><p>La redondance transforme une panne en simple dégradation, à condition de sécuriser aussi le lien de secours.</p></div>
+    <div><b>Des standards pour se comprendre</b><p>DLMS/COSEM, IEC 61850, DNP3, MQTT, OCPP : sans langage commun, pas d'interopérabilité.</p></div>
+  </div>
+  <details class="room"><summary>Déroulé conseillé pour l'exposé (environ 12 minutes)</summary>
+    <ol>
+      <li>Accroche (1 min) : « Que se passe-t-il quand Sami allume sa bouilloire ? »</li>
+      <li>Parcours (5 min) : faites défiler les six étapes en mode présentation, avec les flèches du clavier.</li>
+      <li>Maquette (2 min) : coupez la fibre devant le jury et laissez-le observer la bascule.</li>
+      <li>Jeu (3 min) : le public vote à main levée à chaque question.</li>
+      <li>Conclusion (1 min) : les trois messages à retenir.</li>
+    </ol></details>
+  <p class="note">Les trames affichées sont des exemples simplifiés, et les délais de la maquette sont illustratifs. Pour les valeurs exactes, consultez les normes (IEC 61850, IEC 62351, IEC 62443, DLMS/COSEM) et les fiches techniques des fabricants.</p>
+</div></footer>
+<div class="pnav" id="pnav" hidden role="toolbar" aria-label="Navigation de la présentation"><button id="pPrev" aria-label="Diapositive précédente">← Précédent</button><span class="cnt" id="pCnt">1 / 1</span><button id="pNext" aria-label="Diapositive suivante">Suivant →</button><button id="pQuit">Quitter</button></div>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const NS='http://www.w3.org/2000/svg';
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ENV='<svg width="18" height="14" viewBox="-9 -7 18 14" aria-hidden="true"><rect x="-9" y="-7" width="18" height="14" rx="3" fill="currentColor" style="color:var(--ink)"/><path d="M-6 -3 L0 2 L6 -3" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/* ---------- Animation d'un paquet le long d'un chemin ---------- */
+function makeRunner(flow,pk){
+  let raf=0;
+  return function(pts){
+    cancelAnimationFrame(raf);
+    if(!pts||pts.length<2){flow.setAttribute('d','');pk.style.opacity=0;return;}
+    pk.style.opacity=1;
+    flow.setAttribute('d','M'+pts.map(p=>p.join(' ')).join(' L'));
+    const len=flow.getTotalLength();
+    const place=u=>{const p=flow.getPointAtLength(u*len);pk.setAttribute('transform','translate('+p.x+' '+p.y+')');};
+    if(reduce){place(1);return;}
+    const dur=Math.max(2400,len*7),pause=900,t0=performance.now();
+    const f=now=>{const e=(now-t0)%(dur+pause);const u=Math.min(1,e/dur);place(u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2);raf=requestAnimationFrame(f);};
+    raf=requestAnimationFrame(f);
+  };
+}
+const packetShape='<rect x="-10" y="-8" width="20" height="16" rx="3.5"/><path d="M-6.5 -3 L0 2.5 L6.5 -3"/>';
+
+/* ---------- Plan de métro ---------- */
+const P={appareils:[80,380],pv:[80,280],ve:[160,200],cpt:[260,200],dcu:[400,200],lora:[400,330],poste:[480,280],ant:[500,200],wan:[580,280],e2:[680,280],ctrl:[680,180],dc:[680,80]};
+const SEG={han:['appareils','pv','ve','cpt'],lora:['dcu','lora'],cpl:['cpt','dcu','poste'],cell:['dcu','ant','wan','e2','ctrl'],fibre:['poste','wan','ctrl','dc']};
+const ST={
+  appareils:{n:'Appareils',dx:16,dy:5,a:'start'},
+  pv:{n:'Panneau solaire',dx:16,dy:5,a:'start'},
+  ve:{n:'Borne VE',dx:-14,dy:-12,a:'end'},
+  cpt:{n:'Compteur communicant',dx:0,dy:-18,a:'middle',x:1},
+  dcu:{n:'Concentrateur (DCU)',dx:-14,dy:28,a:'end',x:1},
+  lora:{n:'Capteurs de ligne',dx:16,dy:5,a:'start'},
+  poste:{n:'Poste HTA/BT',dx:0,dy:32,a:'middle',x:1},
+  ant:{n:'Antenne 4G/5G',dx:0,dy:-18,a:'middle'},
+  wan:{n:'Passerelle WAN',dx:-10,dy:32,a:'start',x:1},
+  ctrl:{n:'Centre de contrôle',dx:16,dy:5,a:'start',x:1},
+  dc:{n:'Datacenter · IA',dx:16,dy:5,a:'start'}
+};
+function buildMap(){
+  const zones=[[10,330,'HAN · maison','≈ 100 m'],[330,540,'NAN / FAN · quartier','≈ quelques km'],[540,830,'WAN · région','10 à 100+ km']];
+  let s='<svg id="mapsvg" viewBox="0 0 840 440" role="img" aria-label="Plan de métro des communications d\'un réseau électrique intelligent">';
+  zones.forEach((z,i)=>{s+='<rect x="'+z[0]+'" y="10" width="'+(z[1]-z[0])+'" height="420" class="band b'+i+'"/><text x="'+(z[0]+14)+'" y="34" class="zt">'+z[2]+'</text><text x="'+(z[0]+14)+'" y="422" class="zr">'+z[3]+'</text>';});
+  Object.keys(SEG).forEach(k=>{s+='<path class="seg '+k+'" data-seg="'+k+'" d="M'+SEG[k].map(n=>P[n].join(' ')).join(' L')+'"/>';});
+  s+='<path id="flow" class="flow" d=""/>';
+  s+='<g class="cutg" id="cut"><line x1="520" y1="268" x2="540" y2="292"/><line x1="540" y1="268" x2="520" y2="292"/><path d="M532 296 L540 340" stroke="var(--bad)" stroke-width="2" stroke-dasharray="3 4" fill="none"/><rect x="494" y="340" width="92" height="26" rx="13"/><text x="540" y="358">Fibre coupée</text></g>';
+  Object.keys(ST).forEach(k=>{const t=ST[k],p=P[k];s+='<g class="st" data-st="'+k+'"><title>'+t.n+'</title><circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+(t.x?12:9)+'"/><text x="'+(p[0]+t.dx)+'" y="'+(p[1]+t.dy)+'" text-anchor="'+t.a+'">'+t.n+'</text></g>';});
+  s+='<g id="pk" class="pk" transform="translate(80 380)">'+packetShape+'</g></svg>';
+  $('#mapscroll').innerHTML=s;
+}
+const chip=(c,t)=>'<span class="chip"><i style="background:var(--'+c+')"></i>'+t+'</span>';
+const STEPS=[
+ {t:'06:45',zone:'HAN',h:'Le réveil',
+  p:"Sami allume la bouilloire, le chauffe-eau se déclenche. Dans la maison, les appareils envoient leur consommation au compteur communicant, en radio basse consommation. Ils forment un réseau maillé : chaque nœud peut relayer le message de son voisin.",
+  tech:[['radio','Zigbee'],['radio','Wi-Fi']],proto:'Zigbee Smart Energy · DLMS/COSEM côté compteur',
+  fig:[['Portée','10–100 m'],['Débit','≤ 250 kbit/s']],
+  tk:{de:'Chauffe-eau',vers:'Compteur',msg:'OBIS 1-0:1.8.0 → 3,2 kWh',delai:'quelques secondes'},
+  segs:['han'],route:['appareils','pv','ve','cpt']},
+ {t:'08:30',zone:'HAN → NAN',h:'Le soleil se lève',
+  p:"Les panneaux produisent. L'onduleur annonce sa production au compteur, qui devient bidirectionnel. Pour quitter la maison, la donnée emprunte le câble électrique lui-même : c'est le courant porteur en ligne (CPL), jusqu'au concentrateur du quartier. Point dur : les onduleurs et chargeurs ajoutent du bruit sur la ligne.",
+  tech:[['radio','Zigbee'],['cpl','CPL (G3-PLC, PRIME)']],proto:'Modbus / SunSpec (onduleur) → DLMS/COSEM',
+  fig:[['Portée','≈ 200 m – 3 km'],['Débit','10–300 kbit/s']],
+  tk:{de:'Onduleur PV',vers:'Concentrateur (DCU)',msg:'OBIS 1-0:2.8.0 → 4,8 kWh injectés',delai:'quelques minutes'},
+  segs:['han','cpl'],route:['pv','ve','cpt','dcu']},
+ {t:'12:30',zone:'NAN → WAN',h:'Les capteurs veillent',
+  p:"Sur la ligne de distribution, des capteurs surveillent la température des câbles et détectent les défauts. Ils envoient de petits messages rares, sur pile pendant des années : c'est le terrain de LoRaWAN. Le concentrateur regroupe les messages et les transmet au centre par le réseau mobile.",
+  tech:[['radio','LoRaWAN'],['cell','NB-IoT / 4G']],proto:'LoRaWAN · MQTT vers la plateforme',
+  fig:[['Portée','2–15 km'],['Débit','0,3–50 kbit/s']],
+  tk:{de:'Capteur de ligne n°14',vers:'Centre de contrôle',msg:'T° câble 63 °C · seuil dépassé',delai:'secondes à minutes'},
+  segs:['lora','cell'],route:['lora','dcu','ant','wan','e2','ctrl']},
+ {t:'18:30',zone:'WAN → HAN',h:'La recharge pilotée',
+  p:"Sami branche sa voiture : 7 kW de plus dans la rue. Le centre de contrôle voit le pic arriver et envoie un ordre à la borne pour réduire la puissance. Ici le paquet descend, du centre vers la maison. La communication est bidirectionnelle, et chaque maillon doit authentifier l'ordre.",
+  tech:[['fibre','Fibre'],['cpl','CPL'],['radio','Radio locale']],proto:'OCPP (borne ↔ superviseur) · ISO 15118 (voiture ↔ borne)',
+  fig:[['Délai visé','< 1 s'],['Sens','descendant']],
+  tk:{de:'Centre de contrôle',vers:'Borne de recharge',msg:'SetChargingProfile · limite 3,7 kW',delai:'moins d\'une seconde'},
+  segs:['fibre','cpl','han'],route:['ctrl','wan','poste','dcu','cpt','ve']},
+ {t:'20:00',zone:'NAN → WAN',h:'Le pic du soir',
+  p:"Tout le quartier cuisine, charge et regarde la télé. Au poste, les automates surveillent courant et tension et se parlent en quelques millisecondes pour protéger le matériel. Les mesures remontent par fibre au centre, où l'IA prévoit la suite et où le jumeau numérique teste des scénarios.",
+  tech:[['fibre','Fibre optique']],proto:'IEC 61850 (GOOSE, MMS) · DNP3 / IEC 60870-5-104',
+  fig:[['Protection','≈ 3 ms'],['Supervision','≈ 1 s']],
+  tk:{de:'Automate du poste',vers:'SCADA',msg:'I = 412 A · U = 398 V · surcharge 105 %',delai:'protection ≈ 3 ms, locale au poste'},
+  segs:['fibre'],route:['poste','wan','ctrl','dc']},
+ {t:'02:14',zone:'WAN',h:'La fibre est coupée',
+  p:"Une pelleteuse sectionne la fibre. Rien ne s'arrête : le poste bascule sur le lien 4G/5G de secours. Le délai passe de quelques millisecondes à quelques dizaines, mais l'alarme arrive. C'est le principe de redondance. Ce lien de secours doit être chiffré et authentifié, sinon il devient une porte d'entrée pour un pirate.",
+  tech:[['cell','4G / 5G'],['cpl','CPL']],proto:'IPsec / TLS · IEC 62351',
+  fig:[['Avant','≈ 5 ms'],['Après','≈ 55 ms']],
+  tk:{de:'Poste',vers:'Centre de contrôle',msg:'ALARME lien fibre perdu · bascule 4G',delai:'≈ 55 ms au lieu de ≈ 5 ms'},
+  segs:['cpl','cell'],route:['poste','dcu','ant','wan','e2','ctrl'],cut:true}
+];
+function buildSteps(){
+  $('#steps').innerHTML=STEPS.map((s,i)=>'<li class="step" data-i="'+i+'" data-slide tabindex="0"><article class="card">'+
+   '<div class="meta"><span class="time">'+s.t+'</span><span>'+s.zone+'</span></div>'+
+   '<h3>'+s.h+'</h3><p>'+s.p+'</p>'+
+   '<div class="chips">'+s.tech.map(t=>chip(t[0],t[1])).join('')+'</div>'+
+   '<p class="proto">Langage · <b>'+s.proto+'</b></p>'+
+   '<div class="figs">'+s.fig.map(f=>'<div><span>'+f[0]+'</span><b>'+f[1]+'</b></div>').join('')+'</div>'+
+   '<div class="ticket" aria-label="Exemple de message"><div class="th">Billet du paquet · exemple</div>'+
+   '<div class="tr"><span>De</span><b>'+s.tk.de+'</b></div><div class="tr"><span>Vers</span><b>'+s.tk.vers+'</b></div>'+
+   '<div class="tr"><span>Contenu</span><b>'+s.tk.msg+'</b></div><div class="tr"><span>Délai</span><b>'+s.tk.delai+'</b></div></div>'+
+   '</article></li>').join('');
+}
+let runMap,cur=-1;
+function setStep(i){
+  const s=STEPS[i];cur=i;
+  $$('.step').forEach((el,j)=>el.classList.toggle('on',j===i));
+  $$('#mapsvg .seg').forEach(el=>el.classList.toggle('dim',!s.segs.includes(el.dataset.seg)));
+  $$('#mapsvg .st').forEach(el=>el.classList.toggle('dim',!s.route.includes(el.dataset.st)));
+  $('#cut').classList.toggle('on',!!s.cut);
+  const names=s.route.filter(k=>ST[k]).map(k=>ST[k].n);
+  $('#mapcap').innerHTML='<span class="t">'+s.t+'</span><b>'+s.h+'</b><span>'+names[0]+' → '+names[names.length-1]+'</span>';
+  runMap(s.route.map(k=>P[k]));
+  const sc=$('#mapscroll');
+  if(sc.scrollWidth>sc.clientWidth+4){
+    const xs=s.route.map(k=>P[k][0]),mid=(Math.min(...xs)+Math.max(...xs))/2,k=sc.scrollWidth/840;
+    sc.scrollTo({left:Math.max(0,mid*k-sc.clientWidth/2),behavior:reduce?'auto':'smooth'});
+  }
+}
+function initStory(){
+  buildMap();buildSteps();
+  runMap=makeRunner($('#flow'),$('#pk'));
+  setStep(0);
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){const i=+e.target.dataset.i;if(i!==cur)setStep(i);}});},{rootMargin:'-42% 0px -42% 0px'});
+  $$('.step').forEach(el=>{io.observe(el);el.addEventListener('click',()=>{const i=+el.dataset.i;if(i!==cur)setStep(i);});el.addEventListener('focus',()=>{const i=+el.dataset.i;if(i!==cur)setStep(i);});});
+}
+
+/* ---------- Maquette : pannes et reroutage ---------- */
+const NODES={A:{x:130,y:70,n:'Maison A'},B:{x:130,y:180,n:'Maison B'},C:{x:130,y:290,n:'Usine'},DCU:{x:300,y:180,n:'Concentrateur'},PO:{x:450,y:180,n:'Poste'},FI:{x:590,y:80,n:'Nœud fibre'},AN:{x:590,y:280,n:'Antenne 5G'},CT:{x:720,y:180,n:'Centre de contrôle'}};
+const LINKS=[
+ {id:'a-dcu',a:'A',b:'DCU',ms:120,c:'cpl',n:'CPL de la maison A'},
+ {id:'b-dcu',a:'B',b:'DCU',ms:120,c:'cpl',n:'CPL de la maison B'},
+ {id:'c-dcu',a:'C',b:'DCU',ms:120,c:'cpl',n:'CPL de l\'usine'},
+ {id:'a-b',a:'A',b:'B',ms:30,c:'radio',n:'Radio maillée A–B'},
+ {id:'b-c',a:'B',b:'C',ms:30,c:'radio',n:'Radio maillée B–Usine'},
+ {id:'dcu-po',a:'DCU',b:'PO',ms:5,c:'fibre',n:'Liaison concentrateur–poste'},
+ {id:'po-fi',a:'PO',b:'FI',ms:2,c:'fibre',n:'Fibre poste–nœud'},
+ {id:'fi-ct',a:'FI',b:'CT',ms:3,c:'fibre',n:'Fibre nœud–centre'},
+ {id:'po-an',a:'PO',b:'AN',ms:25,c:'cell',n:'5G poste–antenne'},
+ {id:'an-ct',a:'AN',b:'CT',ms:30,c:'cell',n:'5G antenne–centre'}
+];
+const SRC=[['A','Maison A'],['B','Maison B'],['C','Usine'],['PO','Poste']];
+const SCEN=[['Chantier : couper la fibre',['po-fi']],['Brouillage : couper la 5G',['po-an']],['Câble CPL de la maison A',['a-dcu']],['Isoler le poste',['po-fi','po-an']],['Tout rétablir',[]]];
+const NEEDS=[['Télérelève',10000,'≤ 10 s'],['Pilotage de charge',1000,'≤ 1 s'],['Protection',10,'≤ 10 ms']];
+const cut=new Set();let src='A',runDemo;
+function dijkstra(from,blocked){
+  const adj={};Object.keys(NODES).forEach(k=>adj[k]=[]);
+  LINKS.forEach(l=>{if(blocked.has(l.id))return;adj[l.a].push([l.b,l.ms]);adj[l.b].push([l.a,l.ms]);});
+  const dist={},prev={},todo=new Set(Object.keys(NODES));Object.keys(NODES).forEach(k=>dist[k]=Infinity);dist[from]=0;
+  while(todo.size){
+    let u=null;todo.forEach(k=>{if(u===null||dist[k]<dist[u])u=k;});
+    if(dist[u]===Infinity)break;todo.delete(u);
+    adj[u].forEach(([v,w])=>{if(dist[u]+w<dist[v]){dist[v]=dist[u]+w;prev[v]=u;}});
+  }
+  if(dist.CT===Infinity)return null;
+  const path=['CT'];while(path[0]!==from)path.unshift(prev[path[0]]);
+  return {path,ms:dist.CT};
+}
+function buildDemo(){
+  let s='<svg id="dsvg" viewBox="0 0 800 360" role="img" aria-label="Maquette du réseau de communication d\'un quartier">';
+  LINKS.forEach(l=>{const a=NODES[l.a],b=NODES[l.b];
+    s+='<g data-link="'+l.id+'"><line class="lk c-'+l.c+'" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'"/>';
+    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    if(a.x===b.x)s+='<text class="ms" x="'+(mx+12)+'" y="'+(my+4)+'">'+l.ms+' ms</text>';else s+='<text class="ms" x="'+mx+'" y="'+(my-12)+'" text-anchor="middle">'+l.ms+' ms</text>';
+    s+='<g class="xm" data-x="'+l.id+'"><line x1="'+(mx-8)+'" y1="'+(my-8)+'" x2="'+(mx+8)+'" y2="'+(my+8)+'"/><line x1="'+(mx+8)+'" y1="'+(my-8)+'" x2="'+(mx-8)+'" y2="'+(my+8)+'"/></g>';
+    s+='<line class="hit" x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" tabindex="0" role="button" aria-label="'+l.n+' : activer pour couper ou rétablir"/></g>';});
+  s+='<path id="dflow" class="flow" d=""/>';
+  Object.keys(NODES).forEach(k=>{const n=NODES[k];
+    const left=['A','B','C'].includes(k);
+    let tx=n.x,ty=n.y+34,anc='middle';
+    if(left){tx=n.x-20;ty=n.y+5;anc='end';}
+    if(k==='DCU'){tx=n.x+12;ty=n.y+30;anc='start';}
+    if(k==='FI'){ty=n.y-24;}
+    s+='<g class="nd" data-n="'+k+'"><circle cx="'+n.x+'" cy="'+n.y+'" r="'+(k==='CT'?16:13)+'"/><text x="'+tx+'" y="'+ty+'" text-anchor="'+anc+'">'+n.n+'</text></g>';});
+  s+='<g id="dpk" class="pk">'+packetShape+'</g></svg>';
+  $('#dscroll').innerHTML=s;
+  $('#srcs').innerHTML=SRC.map((r,i)=>'<label><input type="radio" name="src" value="'+r[0]+'"'+(i===0?' checked':'')+'><span>'+r[1]+'</span></label>').join('');
+  $('#scen').innerHTML=SCEN.map((c,i)=>'<button class="btn ghost sm" data-scen="'+i+'">'+c[0]+'</button>').join('');
+  runDemo=makeRunner($('#dflow'),$('#dpk'));
+  $$('#dsvg .hit').forEach(h=>{const id=h.parentNode.dataset.link;
+    const tog=()=>{cut.has(id)?cut.delete(id):cut.add(id);renderDemo();};
+    h.addEventListener('click',tog);h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}});});
+  $$('#srcs input').forEach(i=>i.addEventListener('change',()=>{src=i.value;renderDemo();}));
+  $$('#scen button').forEach(b=>b.addEventListener('click',()=>{const c=SCEN[+b.dataset.scen][1];cut.clear();c.forEach(x=>cut.add(x));renderDemo();}));
+  renderDemo();
+}
+function renderDemo(){
+  LINKS.forEach(l=>{$('[data-link="'+l.id+'"] .lk').classList.toggle('cut',cut.has(l.id));$('[data-x="'+l.id+'"]').classList.toggle('on',cut.has(l.id));});
+  $$('#dsvg .nd').forEach(n=>n.classList.toggle('src',n.dataset.n===src));
+  const r=dijkstra(src,cut),base=dijkstra(src,new Set());
+  if(!r){
+    $('#rPath').textContent='Aucun chemin disponible';$('#rLat').textContent='—';
+    $('#rStat').innerHTML='<span class="status" style="--c:var(--bad)"><i></i>Hors service</span>';
+    $('#rNeed').innerHTML=NEEDS.map(n=>'<span>'+n[0]+'</span><b style="color:var(--bad)">Perdu</b><small>'+n[2]+'</small>').join('');
+    runDemo(null);return;
+  }
+  $('#rPath').textContent=r.path.map(k=>NODES[k].n).join(' → ');
+  $('#rLat').textContent=r.ms+' ms';
+  const degraded=r.ms>base.ms;
+  $('#rStat').innerHTML=degraded?'<span class="status" style="--c:var(--warn)"><i></i>Secours actif</span>':'<span class="status" style="--c:var(--ok)"><i></i>Nominal</span>';
+  $('#rNeed').innerHTML=NEEDS.map(n=>{const ok=r.ms<=n[1];return '<span>'+n[0]+'</span><b style="color:var(--'+(ok?'ok':'bad')+')">'+(ok?'OK':'Trop lent')+'</b><small>'+n[2]+'</small>';}).join('');
+  runDemo(r.path.map(k=>[NODES[k].x,NODES[k].y]));
+}
+
+/* ---------- Jeu du paquet ---------- */
+const GQ=[
+ {z:'HAN',c:'radio',s:"Le chauffe-eau de Sami fonctionne sur pile, à 8 m du compteur. Il envoie quelques octets par minute. Quelle technologie ?",
+  o:[['Zigbee',1,"Radio basse consommation et maillée : la pile peut durer des années."],['Fibre optique',0,"Il faudrait tirer un câble jusqu'à chaque appareil."],['5G',0,"Trop gourmande en énergie, avec un abonnement par appareil."]]},
+ {z:'NAN',c:'cpl',s:"Le compteur est à 800 m du concentrateur, et personne ne veut ouvrir la chaussée. Que choisir ?",
+  o:[['CPL (courant porteur)',1,"Le câble électrique est déjà là : aucune tranchée à creuser."],['Wi-Fi',0,"Sa portée se compte en dizaines de mètres."],['Fibre optique',0,"Creuser devant chaque maison coûterait beaucoup trop cher."]]},
+ {z:'WAN',c:'fibre',s:"Le concentrateur regroupe 500 compteurs et doit joindre le centre à 40 km, avec une fiabilité maximale. Quel lien principal ?",
+  o:[['Fibre optique',1,"Très grand débit, délai minimal, immunité aux perturbations électriques."],['LoRaWAN',0,"Débit trop faible pour regrouper 500 compteurs."],['4G / 5G',0,"Excellent en secours, mais dépend d'un opérateur et d'un réseau partagé."]]},
+ {z:'Panne',c:'cell',s:"02:14, un chantier sectionne la fibre. Que fait un réseau résilient ?",
+  o:[['Il bascule seul sur un lien de secours 4G/5G',1,"Deux chemins indépendants : la panne devient une simple dégradation."],['Il attend la réparation',0,"Le centre serait aveugle pendant des heures."],['Il envoie un technicien relever les compteurs',0,"Beaucoup trop lent pour une alarme."]]},
+ {z:'Sécurité',c:'fibre',s:"Un pirate tente d'envoyer un faux ordre de délestage au réseau. Quelle protection l'arrête ?",
+  o:[['Authentification et chiffrement des messages',1,"Sans signature valide, l'ordre est rejeté (TLS, IEC 62351)."],['Un mot de passe commun à tous les équipements',0,"Un seul équipement compromis ouvre tout le réseau."],['Un réseau ouvert pour faciliter la maintenance',0,"C'est la porte d'entrée idéale pour un pirate."]]}
+];
+const GL=['HAN','NAN','WAN','Panne','Sécu'];
+let g={i:0,hp:100,ok:0,ans:null,ord:null};
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+function gRender(){
+  const root=$('#game');
+  const track='<ol class="track5">'+GL.map((l,k)=>'<li class="'+(k<g.i?'done':k===g.i?'cur':'')+'"><span class="dot">'+(k<g.i?'✓':(k===g.i?ENV:''))+'</span><span>'+l+'</span></li>').join('')+'</ol>';
+  const hc=g.hp>60?'var(--ok)':g.hp>30?'var(--warn)':'var(--bad)';
+  const hp='<div class="hp"><span>Intégrité du paquet</span><div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+g.hp+'"><i style="width:'+g.hp+'%;--c:'+hc+'"></i></div><b>'+g.hp+' %</b></div>';
+  if(g.i>=GQ.length){
+    const msg=g.ok===5?'Paquet livré, intact':g.ok>=3?'Paquet livré, un peu abîmé':'Paquet corrompu';
+    const sub=g.ok===5?"Vous avez choisi la bonne technologie à chaque zone et tenu face aux obstacles.":g.ok>=3?"L'essentiel est passé. Relisez les explications pour les zones où le paquet a souffert.":"Trop de dégâts en route. Rejouez : chaque zone a sa technologie.";
+    root.innerHTML=track+hp+'<div class="final"><h3>'+msg+'</h3><p class="lede">'+g.ok+' bonne'+(g.ok>1?'s':'')+' réponse'+(g.ok>1?'s':'')+' sur 5. '+sub+'</p>'+
+      '<ul><li>Maison : radio basse consommation (Zigbee)</li><li>Quartier : courant porteur (CPL)</li><li>Grande distance : fibre, avec la 4G/5G en secours</li><li>Toujours : authentification et chiffrement</li></ul></div>'+
+      '<div class="gfoot"><button class="btn" data-restart>Rejouer</button></div>';
+    return;
+  }
+  const q=GQ[g.i];
+  if(!g.ord)g.ord=shuffle(q.o);
+  const done=g.ans!==null;
+  root.innerHTML=track+hp+'<div class="q"><span class="z"><i style="background:var(--'+q.c+')"></i>Question '+(g.i+1)+' sur 5 · '+q.z+'</span><p class="s">'+q.s+'</p>'+
+    '<div class="opts'+(done?' done':'')+'" role="group" aria-label="Réponses">'+g.ord.map((o,k)=>{
+      let cl='';if(done){if(o[1])cl=' ok';else if(k===g.ans)cl=' bad';}
+      return '<button class="opt'+cl+'" data-opt="'+k+'"'+(done?' disabled':'')+'>'+o[0]+'<small>'+(o[1]?'Bonne réponse. ':'')+o[2]+'</small></button>';}).join('')+'</div></div>'+
+    (done?'<div class="gfoot"><span class="hint">'+(g.ord[g.ans][1]?'Le paquet avance sans dommage.':'Le paquet perd 20 % d\'intégrité.')+'</span><button class="btn" data-next>'+(g.i===GQ.length-1?'Voir le résultat':'Zone suivante')+'</button></div>':'');
+}
+function initGame(){
+  $('#game').addEventListener('click',e=>{
+    const o=e.target.closest('[data-opt]'),n=e.target.closest('[data-next]'),r=e.target.closest('[data-restart]');
+    if(o&&g.ans===null){g.ans=+o.dataset.opt;if(g.ord[g.ans][1])g.ok++;else g.hp=Math.max(0,g.hp-20);gRender();const nb=$('[data-next]');if(nb)nb.focus({preventScroll:true});}
+    else if(n){g.i++;g.ans=null;g.ord=null;gRender();}
+    else if(r){g={i:0,hp:100,ok:0,ans:null,ord:null};gRender();}
+  });
+  gRender();
+}
+
+/* ---------- Comparateur ---------- */
+const TECH=[
+ {n:'Zigbee',c:'radio',L:['HAN'],r:[10,100],d:[20,250],lat:'10–100 ms',co:'€',u:'Appareils, prises, thermostats'},
+ {n:'Wi-Fi',c:'radio',L:['HAN'],r:[20,100],d:[1e4,1e6],lat:'5–50 ms',co:'€',u:'Passerelles domestiques, bornes de recharge'},
+ {n:'CPL (G3-PLC, PRIME)',c:'cpl',L:['NAN'],r:[200,3000],d:[10,300],lat:'100 ms – 1 s',co:'€',u:'Compteur vers concentrateur, sans nouveau câble'},
+ {n:'LoRaWAN',c:'radio',L:['NAN'],r:[2000,15000],d:[0.3,50],lat:'quelques secondes',co:'€',u:'Capteurs de ligne, comptage eau et gaz'},
+ {n:'NB-IoT',c:'cell',L:['NAN','WAN'],r:[1000,10000],d:[20,250],lat:'1–10 s',co:'€€',u:'Compteurs isolés, objets en sous-sol'},
+ {n:'4G (LTE)',c:'cell',L:['WAN'],r:[1000,10000],d:[5000,1e5],lat:'30–100 ms',co:'€€',u:'Concentrateurs, lien de secours'},
+ {n:'5G',c:'cell',L:['WAN'],r:[200,5000],d:[5e4,1e6],lat:'1–20 ms',co:'€€€',u:'Tranches dédiées, pilotage en temps réel'},
+ {n:'Fibre optique',c:'fibre',L:['WAN'],r:[1000,80000],d:[1e5,1e7],lat:'< 5 ms',co:'€€€',u:'Postes, centres de contrôle, épine dorsale'}
+];
+const fm=x=>String(x).replace('.',',');
+const fmR=v=>v>=1000?fm(v/1000)+' km':v+' m';
+const fmD=v=>v>=1e6?fm(v/1e6)+' Gbit/s':v>=1e3?fm(v/1e3)+' Mbit/s':fm(v)+' kbit/s';
+function chart(el,key,lo,hi,fmt,ticks){
+  const n=hi-lo,pos=v=>(Math.log10(v)-lo)/n;
+  let h=TECH.map((t,i)=>{const a=pos(t[key][0]),b=pos(t[key][1]);
+    return '<div class="row" data-t="'+i+'"><div class="nm"><b>'+t.n+'</b><span>'+fmt(t[key][0])+' – '+fmt(t[key][1])+'</span></div><div class="track" style="--n:'+n+'"><div class="bar2" style="--c:var(--'+t.c+');left:'+(a*100)+'%;width:'+Math.max((b-a)*100,1.5)+'%"></div></div></div>';}).join('');
+  h+='<div class="axis"><span></span><div>'+ticks.map((t,i)=>'<span class="'+(i===0&&pos(t[0])<.01?'first':i===ticks.length-1&&pos(t[0])>.99?'last':'')+'" style="left:'+(pos(t[0])*100)+'%">'+t[1]+'</span>').join('')+'</div></div>';
+  el.innerHTML=h;
+}
+function initCompare(){
+  chart($('#chRange'),'r',0,5,fmR,[[1,'1 m'],[10,'10 m'],[100,'100 m'],[1000,'1 km'],[1e4,'10 km'],[1e5,'100 km']]);
+  chart($('#chRate'),'d',-1,7,fmD,[[1,'1 kbit/s'],[100,'100 kbit/s'],[1e4,'10 Mbit/s'],[1e6,'1 Gbit/s']]);
+  $('#tbl tbody').innerHTML=TECH.map((t,i)=>'<tr data-t="'+i+'"><td class="tn">'+chip(t.c,t.n)+'</td><td>'+t.L.join(' / ')+'</td><td>'+t.lat+'</td><td>'+t.co+'</td><td>'+t.u+'</td></tr>').join('');
+  const F=['Toutes','HAN','NAN','WAN'];let cf='Toutes';
+  const box=$('#filters');
+  box.innerHTML=F.map(f=>'<button class="btn ghost sm" data-f="'+f+'" aria-pressed="'+(f===cf)+'">'+f+'</button>').join('');
+  box.addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;cf=b.dataset.f;
+    $$('[data-f]',box).forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===cf));
+    $$('[data-t]').forEach(el=>{const t=TECH[+el.dataset.t];el.classList.toggle('off',cf!=='Toutes'&&!t.L.includes(cf));});});
+}
+
+/* ---------- Protocoles ---------- */
+const PROT=[
+ ['DLMS/COSEM','HAN · NAN','fibre',"Le dialogue standard avec les compteurs. Chaque mesure a un code OBIS."],
+ ['Modbus','HAN','radio',"Ancien et robuste : onduleurs, automates, équipements industriels."],
+ ['IEC 61850','Poste','cpl',"Protection et automatisation des postes. Les messages GOOSE circulent en quelques millisecondes."],
+ ['DNP3 · IEC 104','WAN','fibre',"Remontée des mesures et envoi des ordres entre postes et SCADA."],
+ ['MQTT','IoT · cloud','cell',"Messages légers en publication et abonnement, idéaux pour capteurs et plateformes."],
+ ['OPC UA','Industrie','radio',"Interopérabilité et modèle d'information, sécurité intégrée dès la conception."],
+ ['OCPP','Recharge','cpl',"Dialogue entre la borne et son superviseur : profils de charge, limites de puissance."],
+ ['ISO 15118','Recharge','cell',"Dialogue entre la voiture et la borne, avec authentification automatique."]
+];
+function initProt(){$('#pgrid').innerHTML=PROT.map(p=>'<div class="pc" style="--c:var(--'+p[2]+')"><span class="z">'+p[1]+'</span><b>'+p[0]+'</b><p>'+p[3]+'</p></div>').join('');}
+
+/* ---------- Sécurité ---------- */
+const SEC=[
+ {k:'Gouvernance',lab:'GOUVERNANCE',r:112,h:'Normes, clés et plans de crise',p:"Qui gère les clés ? Qui réagit quand une alerte tombe ? Audits réguliers, exercices de crise, conformité aux exigences nationales.",s:'ISO/IEC 27001 · IEC 62443'},
+ {k:'Surveillance',lab:'SURVEILLANCE',r:92,h:'Voir l\'attaque pendant qu\'elle arrive',p:"Un détecteur d'intrusion qui comprend les protocoles industriels (DNP3, IEC 61850), des journaux centralisés et de la détection d'anomalies par IA.",s:'IDS · SIEM'},
+ {k:'Segmentation',lab:'SEGMENTATION',r:72,h:'Des zones étanches',p:"Le réseau de contrôle est séparé d'Internet et du réseau de bureau. Un pare-feu industriel filtre chaque passage, pour qu'une intrusion ne se propage pas.",s:'Zones et conduits (IEC 62443) · VPN'},
+ {k:'Chiffrement et authentification',lab:'CHIFFREMENT',r:54,h:'Prouver qui parle, cacher ce qui se dit',p:"On chiffre les messages et chaque équipement présente un certificat. Un faux ordre sans signature valide est rejeté.",s:'AES · TLS / DTLS · IPsec · IEC 62351'},
+ {k:'Équipement',lab:'ÉQUIPEMENT',r:36,h:'Un compteur dans la rue est accessible',p:"Démarrage sécurisé, clés stockées dans une puce inviolable, mises à jour signées. Même un équipement volé ne doit rien révéler.",s:'Secure boot · élément sécurisé'}
+];
+let sk=3;
+function renderSec(){
+  let s='';SEC.forEach((r,i)=>{const nx=i<SEC.length-1?SEC[i+1].r:18;
+    s+='<g class="ring'+(i===sk?' on':'')+'" data-s="'+i+'"><circle cx="120" cy="120" r="'+r.r+'"/><text x="120" y="'+(120-(r.r+nx)/2+3)+'">'+r.lab+'</text></g>';});
+  s+='<circle cx="120" cy="120" r="18" fill="var(--ink)"/><text x="120" y="123" text-anchor="middle" style="font:500 7.5px var(--mono);fill:var(--bg)">DONNÉE</text>';
+  $('#rings').innerHTML=s;
+  $('#stabs').innerHTML=SEC.map((r,i)=>'<button class="btn ghost sm" role="tab" data-s="'+i+'" aria-pressed="'+(i===sk)+'">'+r.k+'</button>').join('');
+  const r=SEC[sk];
+  $('#sdetail').innerHTML='<h3>'+r.h+'</h3><p>'+r.p+'</p><span class="std">'+r.s+'</span>';
+}
+function initSec(){
+  renderSec();
+  const pick=e=>{const t=e.target.closest('[data-s]');if(!t)return;sk=+t.dataset.s;renderSec();};
+  $('#rings').addEventListener('click',pick);$('#stabs').addEventListener('click',pick);
+}
+
+/* ---------- Thème et mode présentation ---------- */
+$('#btnTheme').addEventListener('click',()=>{
+  const r=document.documentElement;
+  const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme=dark?'light':'dark';
+});
+let present=false,pi=0;
+const slides=()=>$$('[data-slide]');
+function showSlide(n){
+  const s=slides();
+  pi=Math.max(0,Math.min(s.length-1,n));
+  const el=s[pi];
+  el.scrollIntoView({behavior:reduce?'auto':'smooth',block:el.classList.contains('step')?'center':'start'});
+  $('#pCnt').textContent=(pi+1)+' / '+s.length;
+  $('#pPrev').disabled=pi===0;
+  $('#pNext').disabled=pi===s.length-1;
+}
+function setPresent(v){
+  present=v;
+  const b=$('#btnPresent');
+  b.setAttribute('aria-pressed',v);
+  b.textContent=v?'Quitter la présentation':'Mode présentation';
+  $('#pnav').hidden=!v;
+  document.body.classList.toggle('presenting',v);
+  if(v){try{window.focus();}catch(e){}showSlide(0);}
+}
+$('#btnPresent').addEventListener('click',()=>setPresent(!present));
+$('#pPrev').addEventListener('click',()=>showSlide(pi-1));
+$('#pNext').addEventListener('click',()=>showSlide(pi+1));
+$('#pQuit').addEventListener('click',()=>setPresent(false));
+document.addEventListener('keydown',e=>{
+  if(!present)return;
+  if(e.key==='Escape'){setPresent(false);return;}
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;
+  const onBtn=/^(BUTTON|SUMMARY|A)$/.test(e.target.tagName);
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key==='PageDown'||(e.key===' '&&!onBtn)){e.preventDefault();showSlide(pi+1);}
+  else if(e.key==='ArrowLeft'||e.key==='ArrowUp'||e.key==='PageUp'){e.preventDefault();showSlide(pi-1);}
+});
+
+initStory();buildDemo();initGame();initCompare();initProt();initSec();
+})();
+</script>
+
+</body>
+</html>
